@@ -22,13 +22,13 @@ endif()
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 if(NOT BOOST_PYTHON_NUMPY_EIGEN_PYTHON_VERSION)
-  set(BOOST_PYTHON_NUMPY_EIGEN_PYTHON_VERSION 3.4 CACHE STRING "Choose the target Python version (e.g., 3.4, 2.7)" FORCE)
+  set(BOOST_PYTHON_NUMPY_EIGEN_PYTHON_VERSION 3.6 CACHE STRING "Choose the target Python version (e.g., 3.4, 2.7)" FORCE)
 endif()
 
 find_package(PythonInterp ${BOOST_PYTHON_NUMPY_EIGEN_PYTHON_VERSION} REQUIRED)
-execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
+execute_process(COMMAND python -c
   "from distutils.sysconfig import get_python_lib;\
-  print(get_python_lib(plat_specific=True, prefix=''))"
+  print(get_python_lib(plat_specific=True))"
   OUTPUT_VARIABLE PYTHON_SITE_PACKAGES
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
@@ -88,6 +88,29 @@ set_target_properties(boost_numpy_eigen PROPERTIES
 install(TARGETS boost_numpy_eigen
   LIBRARY DESTINATION "${PYTHON_SITE_PACKAGES}"
 )
+
+
+FILE(WRITE cmake/FindBoostNumpyEigen.cmake
+  "set(BOOST_NUMPY_EIGEN_INCLUDE_DIRS
+       ${PYTHON_INCLUDE_DIRS}
+       ${Boost_INCLUDE_DIRS}
+       ${EIGEN3_INCLUDE_DIR}
+       ${NUMPY_INCLUDE_DIRS}
+       ${CMAKE_INSTALL_PREFIX}/include)
+
+    set(BOOST_NUMPY_EIGEN_LIBRARIES
+        ${Boost_LIBRARIES}
+        ${PYTHON_LIBRARIES}
+        boost_numpy_eigen)
+
+    set(BOOST_NUMPY_EIGEN_FOUND TRUE)")
+
+INSTALL(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_INSTALL_PREFIX}/include/boost_numpy_eigen)")
+INSTALL(FILES 
+        "src/eigen_numpy.h" 
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/boost_numpy_eigen)
+INSTALL(FILES cmake/FindBoostNumpyEigen.cmake DESTINATION ${CMAKE_ROOT}/Modules)
+
 
 # unit test
 add_library(test_eigen_numpy_mod SHARED EXCLUDE_FROM_ALL src/test_eigen_numpy_mod.cc)
